@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markov Chain Text Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color-1: #0a0f25;
+            --bg-color-2: #160a2b;
+            --neon-purple: #b300ff;
+            --neon-cyan: #00f0ff;
+            --glass-bg: rgba(20, 25, 50, 0.4);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #ffffff;
+            --text-secondary: #a0aec0;
+            --input-bg: rgba(10, 15, 35, 0.6);
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--bg-color-1) 0%, var(--bg-color-2) 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Floating Particles */
+        .particles {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .particle {
+            position: absolute;
+            background: radial-gradient(circle, var(--neon-cyan) 0%, transparent 70%);
+            border-radius: 50%;
+            opacity: 0.4;
+            animation: float 15s infinite linear;
+        }
+        @keyframes float {
+            0% { transform: translateY(110vh) scale(1); opacity: 0; }
+            50% { opacity: 0.6; }
+            100% { transform: translateY(-10vh) scale(1.5); opacity: 0; }
+        }
+
+        .container {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 850px;
+            padding: 2rem;
+            margin: 3rem 0;
+        }
+
+        /* Glassmorphism Card */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 2.5rem;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+        
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: -1px; left: -1px; right: -1px; bottom: -1px;
+            border-radius: 24px;
+            background: linear-gradient(45deg, var(--neon-purple), transparent, var(--neon-cyan));
+            z-index: -1;
+            opacity: 0.3;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+            transform: translateZ(30px);
+        }
+
+        /* 3D Rotating Hero Visual */
+        .hero-visual {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1rem auto;
+            position: relative;
+            transform-style: preserve-3d;
+            animation: rotate3d 10s infinite linear;
+        }
+        
+        .hero-visual svg {
+            width: 100%;
+            height: 100%;
+            fill: none;
+            stroke: url(#neon-gradient);
+            stroke-width: 2;
+            filter: drop-shadow(0 0 10px var(--neon-cyan));
+        }
+
+        @keyframes rotate3d {
+            0% { transform: rotateY(0deg) rotateX(10deg); }
+            100% { transform: rotateY(360deg) rotateX(10deg); }
+        }
+
+        /* Animated Gradient Title */
+        h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin: 0 0 0.5rem 0;
+            background: linear-gradient(to right, var(--neon-cyan), var(--neon-purple), var(--neon-cyan));
+            background-size: 200% auto;
+            color: transparent;
+            -webkit-background-clip: text;
+            background-clip: text;
+            animation: gradient-text 3s linear infinite;
+        }
+
+        @keyframes gradient-text {
+            to { background-position: 200% center; }
+        }
+
+        p.subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            margin: 0;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            transform: translateZ(20px);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--neon-cyan);
+            font-size: 0.95rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        textarea {
+            width: 100%;
+            background: var(--input-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            padding: 1.2rem;
+            font-family: inherit;
+            font-size: 1.05rem;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+            resize: vertical;
+            min-height: 180px;
+            line-height: 1.5;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--neon-purple);
+            box-shadow: 0 0 15px rgba(179, 0, 255, 0.3), inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* Glowing Range Slider */
+        .glow-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            background: rgba(10, 15, 35, 0.8);
+            border-radius: 10px;
+            outline: none;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5), 0 0 5px rgba(179, 0, 255, 0.2);
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .glow-slider:hover {
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5), 0 0 10px rgba(0, 240, 255, 0.4);
+        }
+
+        .glow-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--neon-cyan);
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--neon-cyan), 0 0 20px var(--neon-purple);
+            transition: transform 0.1s, background 0.2s;
+        }
+
+        .glow-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--neon-cyan);
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--neon-cyan), 0 0 20px var(--neon-purple);
+            transition: transform 0.1s, background 0.2s;
+            border: none;
+        }
+        
+        .glow-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.3);
+            background: #fff;
+            box-shadow: 0 0 15px #fff, 0 0 25px var(--neon-cyan);
+        }
+        .glow-slider::-moz-range-thumb:hover {
+            transform: scale(1.3);
+            background: #fff;
+            box-shadow: 0 0 15px #fff, 0 0 25px var(--neon-cyan);
+        }
+
+        .controls {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .control-item {
+            flex: 1;
+        }
+
+        /* Generate Button with Glow/Pulse */
+        button.generate-btn {
+            width: 100%;
+            padding: 1.2rem;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(45deg, var(--neon-purple), var(--neon-cyan));
+            color: white;
+            font-size: 1.2rem;
+            font-weight: 800;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+            transition: all 0.3s ease;
+            transform: translateZ(25px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+
+        button.generate-btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(45deg, var(--neon-cyan), var(--neon-purple));
+            z-index: -1;
+            transition: opacity 0.5s ease;
+            opacity: 0;
+        }
+
+        button.generate-btn:hover::before {
+            opacity: 1;
+        }
+
+        button.generate-btn:hover {
+            transform: translateZ(30px) scale(1.02);
+            box-shadow: 0 0 25px var(--neon-purple), 0 0 50px var(--neon-cyan);
+            animation: pulse-glow 1.5s infinite alternate;
+        }
+
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 15px var(--neon-purple); }
+            100% { box-shadow: 0 0 35px var(--neon-cyan); }
+        }
+
+        /* Glowing Border Output Section */
+        .output-section {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--glass-border);
+            display: none;
+            transform: translateZ(15px);
+            position: relative;
+        }
+
+        .output-box-wrapper {
+            position: relative;
+            border-radius: 12px;
+            padding: 2px; /* Space for glowing border */
+        }
+
+        .output-box-wrapper.glowing {
+            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple), var(--neon-cyan));
+            background-size: 200% 200%;
+            animation: border-glow 2s linear infinite;
+        }
+
+        @keyframes border-glow {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+
+        .output-box {
+            background: var(--input-bg);
+            border-radius: 10px;
+            padding: 1.5rem;
+            font-size: 1.15rem;
+            line-height: 1.7;
+            color: #e2e8f0;
+            min-height: 120px;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* File Upload */
+        .file-upload-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.8rem;
+        }
+
+        .file-upload-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--neon-purple);
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+
+        .file-upload-btn:hover {
+            background: var(--neon-purple);
+            box-shadow: 0 0 10px var(--neon-purple);
+        }
+        
+        #fileInput {
+            display: none;
+        }
+
+        /* Copy Button */
+        .copy-btn {
+            background: transparent;
+            border: 1px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+        }
+
+        .copy-btn:hover {
+            background: var(--neon-cyan);
+            color: #000;
+            box-shadow: 0 0 10px var(--neon-cyan);
+        }
+
+        /* Loader */
+        .loader {
+            display: none;
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--glass-border);
+            border-bottom-color: var(--neon-cyan);
+            border-top-color: var(--neon-purple);
+            border-radius: 50%;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+            position: absolute;
+            top: calc(50% - 24px);
+            left: calc(50% - 24px);
+        }
+
+        @keyframes rotation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+
+    <div class="container">
+        <div class="glass-card" id="tiltCard">
+            <header>
+                <div class="hero-visual">
+                    <svg viewBox="0 0 100 100">
+                        <defs>
+                            <linearGradient id="neon-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#00f0ff" />
+                                <stop offset="100%" stop-color="#b300ff" />
+                            </linearGradient>
+                        </defs>
+                        <!-- Stylized Chain Links -->
+                        <path d="M30,50 A20,20 0 1,1 70,50 A20,20 0 1,1 30,50" />
+                        <path d="M45,50 A20,20 0 1,1 85,50 A20,20 0 1,1 45,50" />
+                    </svg>
+                </div>
+                <h1>Markov Generator</h1>
+                <p class="subtitle">Synthesizing the future from the patterns of the past.</p>
+            </header>
+
+            <main>
+                <div class="form-group">
+                    <div class="file-upload-wrapper">
+                        <label for="trainingText" style="margin:0;">Training Corpus</label>
+                        <label class="file-upload-btn" for="fileInput">Upload .txt</label>
+                        <input type="file" id="fileInput" accept=".txt">
+                    </div>
+                    <textarea id="trainingText" placeholder="Paste your training data here..."></textarea>
+                </div>
+
+                <div class="controls">
+                    <div class="control-item form-group">
+                        <label for="order">N-gram Order: <span id="orderValue" style="color: var(--text-primary);">3</span></label>
+                        <input type="range" id="order" value="3" min="1" max="5" class="glow-slider">
+                    </div>
+                    <div class="control-item form-group">
+                        <label for="length">Minimum Words: <span id="lengthValue" style="color: var(--text-primary);">50</span></label>
+                        <input type="range" id="length" value="50" min="5" max="500" class="glow-slider">
+                    </div>
+                </div>
+
+                <button id="generateBtn" class="generate-btn" onclick="generateText()">Generate Text</button>
+
+                <div class="output-section" id="outputSection">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+                        <label style="margin:0;">Synthesized Output</label>
+                        <button id="copyBtn" class="copy-btn" onclick="copyToClipboard()">Copy Result</button>
+                    </div>
+                    <div class="output-box-wrapper" id="outputWrapper">
+                        <div class="output-box" id="outputBox">
+                            <span id="outputText"></span>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // Particle generation
+        const particlesContainer = document.getElementById('particles');
+        const particleCount = 20;
+        
+        for (let i = 0; i < particleCount; i++) {
+            const particle = document.createElement('div');
+            particle.classList.add('particle');
+            
+            // Random properties
+            const size = Math.random() * 80 + 20 + 'px';
+            const left = Math.random() * 100 + 'vw';
+            const delay = Math.random() * 15 + 's';
+            const duration = Math.random() * 10 + 10 + 's';
+            
+            particle.style.width = size;
+            particle.style.height = size;
+            particle.style.left = left;
+            particle.style.animationDelay = delay;
+            particle.style.animationDuration = duration;
+            
+            // Randomly assign neon colors to particles
+            if (Math.random() > 0.5) {
+                particle.style.background = 'radial-gradient(circle, rgba(179, 0, 255, 0.4) 0%, transparent 70%)';
+            }
+            
+            particlesContainer.appendChild(particle);
+        }
+
+        // Slider value updates
+        const orderInput = document.getElementById('order');
+        const orderValue = document.getElementById('orderValue');
+        orderInput.addEventListener('input', () => orderValue.textContent = orderInput.value);
+
+        const lengthInput = document.getElementById('length');
+        const lengthValue = document.getElementById('lengthValue');
+        lengthInput.addEventListener('input', () => lengthValue.textContent = lengthInput.value);
+
+        // App Logic
+        const fileInput = document.getElementById('fileInput');
+        const trainingText = document.getElementById('trainingText');
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                trainingText.value = event.target.result;
+            };
+            reader.readAsText(file);
+        });
+
+        async function generateText() {
+            const text = trainingText.value;
+            const length = document.getElementById('length').value;
+            const order = document.getElementById('order').value;
+            
+            const btn = document.getElementById('generateBtn');
+            const outputSection = document.getElementById('outputSection');
+            const outputText = document.getElementById('outputText');
+            const outputWrapper = document.getElementById('outputWrapper');
+
+            if (!text.trim()) {
+                alert("Please provide some training text!");
+                return;
+            }
+
+            // UI feedback
+            btn.textContent = "Synthesizing...";
+            outputSection.style.display = "block";
+            outputWrapper.classList.remove('glowing');
+            outputText.innerHTML = '<span class="loader" style="display:block;"></span>';
+
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text, length, order })
+                });
+
+                const data = await response.json();
+                
+                setTimeout(() => {
+                    if (data.error) {
+                        outputText.textContent = "Error: " + data.error;
+                        outputText.style.color = "#ff4081";
+                    } else {
+                        outputText.textContent = data.result;
+                        outputText.style.color = "#e2e8f0";
+                        // Add glowing border effect on success
+                        outputWrapper.classList.add('glowing');
+                    }
+                    btn.textContent = "Generate Text";
+                }, 600);
+
+            } catch (error) {
+                outputText.textContent = "An error occurred while generating text.";
+                btn.textContent = "Generate Text";
+            }
+        }
+
+        async function copyToClipboard() {
+            const text = document.getElementById('outputText').textContent;
+            if (!text || document.querySelector('.loader')?.style.display === 'block') return;
+            try {
+                await navigator.clipboard.writeText(text);
+                const btn = document.getElementById('copyBtn');
+                btn.textContent = 'Copied!';
+                setTimeout(() => btn.textContent = 'Copy Result', 2000);
+            } catch (err) {
+                console.error('Failed to copy', err);
+            }
+        }
+    </script>
+</body>
+</html>
