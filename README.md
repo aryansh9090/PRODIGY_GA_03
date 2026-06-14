@@ -1,3 +1,9 @@
+<img width="1895" height="908" alt="image" src="https://github.com/user-attachments/assets/84b12d56-76d3-4c3b-bf33-07fa8510dcb8" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/438590e6-f278-4b1f-80d0-da2035b9ab6e" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/02e8e7c2-6bc8-4ee3-a223-2c3f3b7ad1a5" />
+
+
+
 # Markov Chain Text Generator
 
 This project implements a text generator using Markov Chains with a modern web interface built in Flask.
